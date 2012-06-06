@@ -39,4 +39,18 @@
   <bean id="sptService" class="org.opentripplanner.routing.algorithm.GenericAStar"/>
   <bean id="jsonpCallbackFilter" class="org.opentripplanner.jsonp.JsonpCallbackFilter" />
 
+  <bean id="periodicGraphUpdater" class="org.opentripplanner.api.servlet.PeriodicGraphUpdater">
+    <property name="updaters">
+        <list>
+            <bean class="org.opentripplanner.updater.bike_rental.BikeRentalUpdater">
+                <property name="bikeRentalDataSource">
+                    <bean class="org.opentripplanner.updater.bike_rental.BixiBikeRentalDataSource">
+                        <property name="url" value="https://montreal.bixi.com/data/bikeStations.xml" />
+                    </bean>
+                </property>
+            </bean>
+         </list>
+     </property>
+  </bean>
+
 </beans>
