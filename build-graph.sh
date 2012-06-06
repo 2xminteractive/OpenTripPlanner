@@ -14,6 +14,9 @@ fi
 find . -name Graph.obj -delete
 rm -rf /tmp/graph-builder/*
 
+# Will use the default one
+rm opentripplanner-api-webapp/src/main/resources/org/opentripplanner/api/application-context.xml
+
 VERSION=`ls -1 $OTP_HOME/opentripplanner-graph-builder/target/opentripplanner-graph-builder-*.jar | tail -1 | awk -F'opentripplanner-graph-builder-' '{print $NF}' | awk -F'.jar' '{print $1}'`
 
 cd opentripplanner-graph-builder/target
