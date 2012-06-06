@@ -10,13 +10,148 @@
                 <property name="bundles">
                     <list>
                         <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
-			    <property name="csvInputSource">
-			      <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
-				<property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
-				<property name="url"
-					  value="http://opentripplanner.org/raw-attachment/ticket/267/google_transit.zip" />
-			      </bean>
-			    </property>
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.stm.info/fichiers/gtfs/gtfs_stm.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/trains/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/express/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.stl.laval.qc.ca/opendata/GTF_STL.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citcrc/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/cithsl/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citla/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citpi/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/crtl/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citlr/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citrous/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citsv/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citso/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/citvr/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/mrclasso/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/mrc2m/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/mrclm/google_transit.zip" />
+                                </bean>
+                            </property>
+                        </bean>
+                        <bean class="org.opentripplanner.graph_builder.model.GtfsBundle">
+                            <property name="csvInputSource">
+                                <bean class="org.opentripplanner.graph_builder.impl.DownloadableGtfsInputSource">
+                                    <property name="cacheDirectory" value="/tmp/graph-builder/gtfs" />
+                                    <property name="url" value="http://www.amt.qc.ca/xdata/omitsju/google_transit.zip" />
+                                </bean>
+                            </property>
                         </bean>
                     </list>
                 </property>
@@ -24,29 +159,12 @@
         </property>
     </bean>
 
-    <bean id="streetBuilder" class="org.opentripplanner.graph_builder.impl.shapefile.ShapefileStreetGraphBuilderImpl">
-        <property name="featureSourceFactory">
-            <bean class="org.opentripplanner.graph_builder.impl.shapefile.ShapefileFeatureSourceFactoryImpl">
-                <property name="path" value="../opentripplanner-api-webapp/src/test/resources/portland/Streets_pdx.shp" />
-            </bean>
-        </property>
-        <property name="schema">
-            <bean class="org.opentripplanner.graph_builder.impl.shapefile.ShapefileStreetSchema">
-                <property name="idAttribute" value="LOCALID" />
-                <property name="nameAttribute" value="FULL_NAME" />
-                <property name="permissionConverter">
-                    <bean class="org.opentripplanner.graph_builder.impl.shapefile.CaseBasedTraversalPermissionConverter">
-                        <property name="attributeName" value="DIRECTION" />
-                        <property name="defaultPermission" value="PEDESTRIAN_AND_BICYCLE" />
-                        <property name="permissions">
-                            <map>
-                                <entry key="1" value="ALL,PEDESTRIAN" />
-                                <entry key="2" value="PEDESTRIAN,ALL" />
-                                <entry key="3" value="ALL,ALL" />
-                            </map>
-                        </property>
-                    </bean>
-                </property>
+    <bean id="streetBuilder" class="org.opentripplanner.graph_builder.impl.osm.OpenStreetMapGraphBuilderImpl">
+        <property name="provider">
+            <bean class="org.opentripplanner.openstreetmap.impl.AnyFileBasedOpenStreetMapProviderImpl">
+                <!-- Downloaded from: http://metro.teczno.com/#montreal -->
+                <!-- Other available sources: http://download.bbbike.org/osm/bbbike/Montreal/, http://download.geofabrik.de/osm/north-america/canada/ -->
+                <property name="path" value="../../montreal.osm.pbf" />
             </bean>
         </property>
     </bean>
