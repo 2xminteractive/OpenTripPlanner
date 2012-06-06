@@ -1,7 +1,7 @@
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
-    <title>OpenTripPlanner Map</title>
+    <title>Netlift OTP Map</title>
 
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="description" content="The Open Trip Planner provides step-by-step directions for using multiple modes of travel, including transit, biking and walking. Find out more about this open source project at http://opentripplanner.org." />
@@ -16,6 +16,10 @@
     <link rel="stylesheet" type="text/css" href="js/lib/geoext/css/geoext-all.css" />
     <!--[if lte IE 6]> <link rel="stylesheet" href="/js/openlayers/theme/default/ie6-style.css" type="text/css" /> <![endif]-->
     <link rel="stylesheet" type="text/css" href="planner.css" />
+
+    <?php if (isset($_GET['mid'])): ?>
+        <link rel="stylesheet" type="text/css" href="netlift.css" />
+    <?php endif; ?>
 
     <!--[if IE]><script type="text/javascript" src="js/lib/excanvas.min.js"></script><![endif]-->
 
@@ -45,16 +49,6 @@
     <script src="js/otp/util/Modes.js"></script>
     <script src="js/otp/locale/English.js"></script>
     <script src="js/otp/locale/French.js"></script>
-    <script src="js/otp/locale/Gaelic.js"></script>
-    <script src="js/otp/locale/Hungarian.js"></script>
-    <script src="js/otp/locale/Italian.js"></script>
-    <script src="js/otp/locale/Dutch.js"></script>
-    <script src="js/otp/locale/German.js"></script>
-    <script src="js/otp/locale/Hebrew.js"></script>
-    <script src="js/otp/locale/Marathi.js"></script>
-    <script src="js/otp/locale/Polish.js"></script>
-    <script src="js/otp/locale/Portuguese.js"></script>
-    <script src="js/otp/locale/Spanish.js"></script>
     <script src="js/otp/util/AnalyticsUtils.js"></script>
     <script src="js/otp/util/DateUtils.js"></script>
     <script src="js/otp/util/ObjUtils.js"></script>
@@ -93,6 +87,26 @@
     <script src="js/otp/application/Attribution.js"></script>
     <script src="js/otp/application/Controller.js"></script>
     <script src="js/otp/config.js"></script>
+<?php
+if (isset($_GET['mid'])) {
+	$db = mysql_connect('108.163.159.14', 'netlift_user', 'sdfkh38476SFG') or die("Can't connect to the database. Please try again later.");
+	mysql_select_db('netlift') or die ("Database isn't available. Please try again later.");
+	$q = sprintf("SELECT * FROM otp_results WHERE id = %d LIMIT 1", mysql_escape_string($_GET['mid']));
+	$r = mysql_query($q) or die("Can't select otp_result:" . mysql_error() . $q);
+	$itinerary = mysql_fetch_object($r);
+	$api_response = $itinerary->api_response;
+	echo "<script type='text/javascript'>var apiResponse = '" . trim(str_replace(array('\\', "'"), array('\\\\', "\\'"), $api_response)) . "';</script>";
+	echo "<script src='js/netlift/netlift.js.php'></script>\n";
+} else {
+	?>
+	<script type="text/javascript">
+	Ext.onReady(function()	{
+		new otp.application.Controller(otp.config);
+	});
+	</script>
+	<?php
+}
+?>
 </head>
 
 <body>
@@ -118,13 +132,5 @@
     <div class="logo" id="logo"> 
         <a href="http://opentripplanner.org" title="OpenTripPlanner Home"></a>
     </div>
-    <script>otp.util.AnalyticsUtils.importGoogleAnalytics();</script>
-    <script type="text/javascript">
-    Ext.onReady(function()
-    {
-        otp.util.AnalyticsUtils.initGoogleAnalytics();
-        new otp.application.Controller(otp.config);
-    });
-    </script>
 </body>
 </html>

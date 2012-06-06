@@ -24,7 +24,7 @@ otp.config_defaults = {
 
         // options to turn stuff on / off on the planner
         options        : {
-            showElevationGraph    : true,   // turn on/off the southern panel that displays the elevation data
+            showElevationGraph    : false,  // turn on/off the southern panel that displays the elevation data
             showBikeshareMode     : true,   // turn on/off the bikeshare options in the mode pull down
             showTrainMode         : true,   // turn on/off the train options in the mode pull down
             showWheelchairForm    : true,   // turn on/off the wheelchair check box (on by default)
@@ -32,13 +32,14 @@ otp.config_defaults = {
             showStopCodes         : true,   // show stop codes as part of the itinerary
             showAgencyInfo        : true,   // show the 'service run by Yolobus' on each itinerary leg
             showFareInfo          : true,   // show the fare information in the itinerary
-            showReverseButton     : true,   // turn on/off itinerary reverse button
-            showEditButton        : true,   // turn on/off itinerary edit button
-            showPrintButton       : true,   // turn on/off itinerary print button
-            showLinksButton       : true,   // turn on/off itinerary links button
+            showReverseButton     : false,  // turn on/off itinerary reverse button
+            showEditButton        : false,  // turn on/off itinerary edit button
+            showPrintButton       : false,  // turn on/off itinerary print button
+            showLinksButton       : false,  // turn on/off itinerary links button
             useOptionDependencies : true,   // trip form changes based on mode and optimize flags (e.g., bike mode has no wheelchair or walk distance forms etc...) 
             useRouteLongName      : false,  // format route name with both short-name and long-name...see / override Itinerary.makeRouteName() for different formatting options
             appendGeocodeName     : true,   // true = send string:lat,lon parameter format to OTP, else just lat,lon goes to OTP 
+            showForm              : false,  // turn on/off the 'Plan a Trip, form that allows users to create routes. You might want to hide it if you want to only display predefined routes.
             OPTIONS_NOTE: "THIS IS A STRUCTURE USED TO CUSTOMIZE THE TRIP FORMS AND OTHER BEHAVIORS"
         },
 

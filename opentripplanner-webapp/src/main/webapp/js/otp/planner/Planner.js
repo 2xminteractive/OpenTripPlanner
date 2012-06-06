@@ -104,7 +104,9 @@ otp.planner.Planner = {
         this.m_renderer = new otp.planner.Renderer(this);
         this.m_topoRenderer = new otp.planner.TopoRenderer({map: this.map, panel:this.ui.innerSouth});
         this.m_forms    = new otp.planner.Forms(this);
-        this.addFormPanel(this.m_forms.getPanel());
+        if (this.options.showForm) {
+            this.addFormPanel(this.m_forms.getPanel());
+        }
 
         // step 4: override the Form's submit method to something we own here in planner
         var thisObj = this;

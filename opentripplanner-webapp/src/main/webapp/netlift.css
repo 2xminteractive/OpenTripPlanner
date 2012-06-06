@@ -1,0 +1,4 @@
+.x-panel-header {
+    /* Hide 'Trip Planner' header in the accordeon */
+    display: none;
+}
