@@ -12,7 +12,6 @@ if [ "$OTP_HOME" = "" ]; then
 fi
 
 find . -name Graph.obj -delete
-rm -rf /tmp/graph-builder/*
 
 # Will use the default one
 rm opentripplanner-api-webapp/src/main/resources/org/opentripplanner/api/application-context.xml
