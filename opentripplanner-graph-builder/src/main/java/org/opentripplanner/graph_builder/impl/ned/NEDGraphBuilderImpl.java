@@ -16,6 +16,7 @@ package org.opentripplanner.graph_builder.impl.ned;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -25,6 +26,7 @@ import org.geotools.coverage.grid.GridCoverage2D;
 import org.geotools.coverage.grid.Interpolator2D;
 import org.geotools.geometry.DirectPosition2D;
 import org.opengis.coverage.Coverage;
+import org.opentripplanner.common.geometry.DistanceLibrary;
 import org.opentripplanner.common.geometry.PackedCoordinateSequence;
 import org.opentripplanner.graph_builder.services.GraphBuilder;
 import org.opentripplanner.graph_builder.services.ned.NEDGridCoverageFactory;
@@ -34,7 +36,7 @@ import org.opentripplanner.routing.edgetype.EdgeWithElevation;
 import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
-import org.opentripplanner.common.geometry.DistanceLibrary;
+import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.common.pqueue.BinHeap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +67,8 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
      * arc-second NED data.
      */
     private double distanceBetweenSamplesM = 10;
+
+    private DistanceLibrary distanceLibrary = SphericalDistanceLibrary.getInstance();
 
     public List<String> provides() {
         return Arrays.asList("elevation");
@@ -102,12 +106,12 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
                     EdgeWithElevation edgeWithElevation = (EdgeWithElevation) ee;
                     // if (ee instanceof TurnEdge && ((TurnVertex)ee.getFromVertex()).is
                     processEdge(graph, edgeWithElevation);
-                    if (edgeWithElevation.getElevationProfile() != null) {
+                    if (edgeWithElevation.getElevationProfile() != null && !edgeWithElevation.isElevationFlattened()) {
                         edgesWithElevation.add(edgeWithElevation);
-                        nProcessed += 1;
-                        if (nProcessed % 50000 == 0)
-                            log.info("set elevation on {}/{} edges", nProcessed, nTotal);
                     }
+                    nProcessed += 1;
+                    if (nProcessed % 50000 == 0)
+                        log.info("set elevation on {}/{} edges", nProcessed, nTotal);
                 }
             }
         }
@@ -142,11 +146,14 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
      */
     private void assignMissingElevations(Graph graph, List<EdgeWithElevation> edgesWithElevation) {
 
+        log.debug("Assigning missing elevations");
+
         BinHeap<ElevationRepairState> pq = new BinHeap<ElevationRepairState>();
-        BinHeap<ElevationRepairState> secondary_pq = new BinHeap<ElevationRepairState>();
 
         // elevation for each vertex (known or interpolated)
         HashMap<Vertex, Double> elevations = new HashMap<Vertex, Double>();
+
+        HashSet<Vertex> closed = new HashSet<Vertex>();
 
         // initialize queue with all vertices which already have known elevation
         for (EdgeWithElevation e : edgesWithElevation) {
@@ -176,16 +183,8 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
             double key = pq.peek_min_key();
             ElevationRepairState state = pq.extract_min();
 
-            if (pq.empty() && secondary_pq != null) {
-                pq = secondary_pq;
-                secondary_pq = null;
-            }
-
-            if (key != 0 && elevations.containsKey(state.vertex)) {
-                // we have already explored this vertex; we might need to do something here
-                // but for now let's not.
-                continue;
-            }
+            if (closed.contains(state.vertex)) continue;
+            closed.add(state.vertex);
 
             ElevationRepairState curState = state;
             Vertex initialVertex = null;
@@ -243,6 +242,13 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
                 }
             } // end loop over incoming edges
 
+            //limit elevation propagation to at max 2km; this prevents an infinite loop
+            //in the case of islands missing elevation (and some other cases)
+            if (bestDistance == Double.MAX_VALUE && state.distance > 2000) {
+                log.warn("While propagating elevations, hit 2km distance limit at " + state.vertex);
+                bestDistance = state.distance;
+                bestElevation = state.initialElevation;
+            }
             if (bestDistance != Double.MAX_VALUE) {
                 // we have found a second vertex with elevation, so we can interpolate the elevation
                 // for this point
@@ -319,7 +325,7 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
         // calculate the total edge length in meters
         double edgeLenM = 0;
         for (int i = 0; i < coords.length - 1; i++) {
-            edgeLenM += DistanceLibrary.distance(coords[i].y, coords[i].x, coords[i + 1].y,
+            edgeLenM += distanceLibrary.distance(coords[i].y, coords[i].x, coords[i + 1].y,
                     coords[i + 1].x);
         }
 
@@ -345,8 +351,7 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
         PackedCoordinateSequence elevPCS = new PackedCoordinateSequence.Double(
                 coordList.toArray(coordArr));
 
-
-        if(ee.setElevationProfile(elevPCS, true)) {
+        if(ee.setElevationProfile(elevPCS, false)) {
             log.trace(GraphBuilderAnnotation.register(graph, Variety.ELEVATION_FLATTENED, ee));
         }
     }
@@ -373,7 +378,7 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
             y2 = innerPt.y;
 
             // percentage of total edge length represented by current segment:
-            double pct = DistanceLibrary.distance(y1, x1, y2, x2) / length;
+            double pct = distanceLibrary .distance(y1, x1, y2, x2) / length;
 
             if (pctThrough + pct > t) { // if current segment contains 't,' we're done
                 double pctAlongSeg = (t - pctThrough) / pct;
@@ -390,7 +395,7 @@ public class NEDGraphBuilderImpl implements GraphBuilder {
         x2 = coords[coords.length - 1].x;
         y2 = coords[coords.length - 1].y;
 
-        double pct = DistanceLibrary.distance(y1, x1, y2, x2) / length;
+        double pct = distanceLibrary.distance(y1, x1, y2, x2) / length;
         double pctAlongSeg = (t - pctThrough) / pct;
 
         return new Coordinate(x1 + (pctAlongSeg * (x2 - x1)), y1 + (pctAlongSeg * (y2 - y1)));

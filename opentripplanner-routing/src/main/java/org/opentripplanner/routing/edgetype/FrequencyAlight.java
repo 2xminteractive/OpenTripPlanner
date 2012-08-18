@@ -42,13 +42,16 @@ public class FrequencyAlight extends AbstractEdge  implements OnBoardReverseEdge
     private FrequencyBasedTripPattern pattern;
     private int modeMask;
 
+    private int serviceId;
+
 
     public FrequencyAlight(TransitVertex from, TransitVertex to,
-            FrequencyBasedTripPattern pattern, int stopIndex, TraverseMode mode) {
+            FrequencyBasedTripPattern pattern, int stopIndex, TraverseMode mode, int serviceId) {
         super(from, to);
         this.pattern = pattern;
         this.stopIndex = stopIndex;
         this.modeMask = new TraverseModeSet(mode).getMask();
+        this.serviceId = serviceId;
     }
 
     public String getDirection() {
@@ -99,7 +102,7 @@ public class FrequencyAlight extends AbstractEdge  implements OnBoardReverseEdge
                 //we used to use route banning and that was not so bad.
                 return null;
             }
-            AgencyAndId serviceId = trip.getServiceId();
+
             for (ServiceDay sd : rctx.serviceDays) {
                 int secondsSinceMidnight = sd.secondsSinceMidnight(currentTime);
                 // only check for service on days that are not in the future
@@ -164,7 +167,7 @@ public class FrequencyAlight extends AbstractEdge  implements OnBoardReverseEdge
             if (TransitUtils.handleBoardAlightType(s1, type)) {
                 return null;
             }
-            s1.setTrip(bestPatternIndex);
+            //s1.setTrip(bestPatternIndex); is this necessary? (AMB)
             s1.incrementTimeInSeconds(bestWait);
             s1.incrementNumBoardings();
             s1.setTripId(trip.getId());
@@ -212,7 +215,7 @@ public class FrequencyAlight extends AbstractEdge  implements OnBoardReverseEdge
             if (! rctx.opt.getModes().get(modeMask)) {
                 return Double.POSITIVE_INFINITY;
             }
-            AgencyAndId serviceId = pattern.getTrip().getServiceId();
+            int serviceId = pattern.getServiceId();
             for (ServiceDay sd : rctx.serviceDays)
                 if (sd.serviceIdRunning(serviceId))
                     return 0;
@@ -242,6 +245,6 @@ public class FrequencyAlight extends AbstractEdge  implements OnBoardReverseEdge
     }
 
     public String toString() {
-        return "PatternBoard(" + getFromVertex() + ", " + getToVertex() + ")";
+        return "FrequencyAlight(" + getFromVertex() + ", " + getToVertex() + ")";
     }
 }

@@ -48,6 +48,7 @@
     <script src="js/otp/util/Constants.js"></script>
     <script src="js/otp/util/Modes.js"></script>
     <script src="js/otp/locale/English.js"></script>
+    <script src="js/otp/locale/English_UK.js"></script>
     <script src="js/otp/locale/French.js"></script>
     <script src="js/otp/util/AnalyticsUtils.js"></script>
     <script src="js/otp/util/DateUtils.js"></script>

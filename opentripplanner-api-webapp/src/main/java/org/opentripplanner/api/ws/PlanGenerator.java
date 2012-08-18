@@ -15,7 +15,8 @@ package org.opentripplanner.api.ws;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -23,7 +24,6 @@ import java.util.TimeZone;
 import org.onebusaway.gtfs.model.Agency;
 import org.onebusaway.gtfs.model.Trip;
 import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
-import org.onebusaway.gtfs.services.calendar.CalendarService;
 import org.opentripplanner.api.model.Itinerary;
 import org.opentripplanner.api.model.Leg;
 import org.opentripplanner.api.model.Place;
@@ -33,7 +33,9 @@ import org.opentripplanner.api.model.WalkStep;
 import org.opentripplanner.common.geometry.DirectionUtils;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.common.geometry.PackedCoordinateSequence;
+import org.opentripplanner.common.model.P2;
 import org.opentripplanner.routing.core.EdgeNarrative;
+import org.opentripplanner.routing.core.RoutingContext;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.TraverseMode;
@@ -56,6 +58,7 @@ import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.patch.Alert;
 import org.opentripplanner.routing.services.FareService;
+import org.opentripplanner.routing.services.GraphService;
 import org.opentripplanner.routing.services.PathService;
 import org.opentripplanner.routing.services.TransitIndexService;
 import org.opentripplanner.routing.spt.GraphPath;
@@ -75,7 +78,10 @@ public class PlanGenerator {
 
     private static final Logger LOG = LoggerFactory.getLogger(PlanGenerator.class);
 
+    private static final double MAX_ZAG_DISTANCE = 30;
+
     @Autowired public PathService pathService;
+    @Autowired GraphService graphService;
     
     /** Generates a TripPlan from a Request */
     public TripPlan generate(RoutingRequest options) {
@@ -89,7 +95,7 @@ public class PlanGenerator {
         boolean tooSloped = false;
         try {
             paths = pathService.getPaths(options);
-            if (paths == null && options.getWheelchairAccessible()) {
+            if (paths == null && options.isWheelchairAccessible()) {
                 // There are no paths that meet the user's slope restrictions.
                 // Try again without slope restrictions (and warn user).
                 options.maxSlope = Double.MAX_VALUE;
@@ -149,7 +155,7 @@ public class PlanGenerator {
         TripPlan plan = new TripPlan(from, to, request.getDateTime());
 
         for (GraphPath path : paths) {
-            Itinerary itinerary = generateItinerary(path, request.getShowIntermediateStops());
+            Itinerary itinerary = generateItinerary(path, request.isShowIntermediateStops());
             plan.addItinerary(itinerary);
         }
         return plan;
@@ -241,6 +247,7 @@ public class PlanGenerator {
                     pgstate = PlanGenState.PRETRANSIT;
                     leg = makeLeg(itinerary, state);
                     leg.from.orig = nextName;
+                    itinerary.transfers++;
                     startWalk = -1;
                 } else if (mode == TraverseMode.STL) {
                     // this comes after an alight; do nothing
@@ -266,9 +273,6 @@ public class PlanGenerator {
                     finalizeLeg(leg, state, path.states, startWalk, i, coordinates);
                     startWalk = i;
                     leg = makeLeg(itinerary, state);
-                    if (backEdge instanceof RentABikeOnEdge) {
-                        leg.rentedBike = true; 
-                    }
                     pgstate = PlanGenState.BICYCLE;
                 } else if (mode == TraverseMode.STL) {
                     finalizeLeg(leg, state, path.states, startWalk, i, coordinates);
@@ -424,14 +428,8 @@ public class PlanGenerator {
     }
 
     private Calendar makeCalendar(State state) {
-        CalendarService service = state.getContext().calendarService;
-        Collection<String> agencyIds = state.getContext().graph.getAgencyIds();
-        TimeZone timeZone; 
-        if (agencyIds.size() == 0) {
-            timeZone = TimeZone.getTimeZone("GMT");
-        } else {
-            timeZone = service.getTimeZoneForAgencyId(agencyIds.iterator().next());
-        }
+        RoutingContext rctx = state.getContext();
+        TimeZone timeZone = rctx.graph.getTimeZone(); 
         Calendar calendar = Calendar.getInstance(timeZone);
         calendar.setTimeInMillis(state.getTimeInMillis());
         return calendar;
@@ -450,6 +448,7 @@ public class PlanGenerator {
             leg.routeLongName = trip.getRoute().getLongName();
             leg.routeColor = trip.getRoute().getColor();
             leg.routeTextColor = trip.getRoute().getTextColor();
+            leg.routeId = trip.getRoute().getId().getId();
             if (transitIndex != null) {
                 Agency agency = transitIndex.getAgency(leg.agencyId);
                 leg.agencyName = agency.getName();
@@ -520,6 +519,9 @@ public class PlanGenerator {
         leg.distance = 0.0;
         leg.from = makePlace(s.getBackState(), false);
         leg.mode = en.getMode().toString();
+        if (s.isBikeRenting()) {
+            leg.rentedBike = true; 
+        }
         return leg;
     }
 
@@ -624,6 +626,13 @@ public class PlanGenerator {
             }
 
             String streetName = edgeNarrative.getName();
+            int idx = streetName.indexOf('(');
+            String streetNameNoParens;
+            if (idx > 0)
+                streetNameNoParens = streetName.substring(0, idx - 1);
+            else
+                streetNameNoParens = streetName;
+
             if (step == null) {
                 // first step
                 step = createWalkStep(currState);
@@ -634,14 +643,14 @@ public class PlanGenerator {
                 step.setAbsoluteDirection(thisAngle);
                 // new step, set distance to length of first edge
                 distance = edgeNarrative.getDistance();
-            } else if ((step.streetName != null && !step.streetName.equals(streetName))
+            } else if ((step.streetName != null && !step.streetNameNoParens().equals(streetNameNoParens))
                     && (!step.bogusName || !edgeNarrative.hasBogusName())) {
                 /* street name has changed */
                 if (roundaboutExit > 0) {
                     // if we were just on a roundabout,
                     // make note of which exit was taken in the existing step
                     step.exit = Integer.toString(roundaboutExit); // ordinal numbers from
-                    if (streetName.equals(roundaboutPreviousStreet)) {
+                    if (streetNameNoParens.equals(roundaboutPreviousStreet)) {
                         step.stayOn = true;
                     }
                     // localization
@@ -657,6 +666,9 @@ public class PlanGenerator {
                     // and use one-based exit numbering
                     roundaboutExit = 1;
                     roundaboutPreviousStreet = backState.getBackEdgeNarrative().getName();
+                    idx = roundaboutPreviousStreet.indexOf('(');
+                    if (idx > 0)
+                        roundaboutPreviousStreet = roundaboutPreviousStreet.substring(0, idx - 1);
                 }
                 double thisAngle = DirectionUtils.getFirstAngle(geom);
                 step.setDirections(lastAngle, thisAngle, edgeNarrative.isRoundabout());
@@ -755,12 +767,41 @@ public class PlanGenerator {
                 }
             }
 
-            if (!createdNewStep) {
+            if (createdNewStep) {
+                //check last three steps for zag
+                int last = steps.size() - 1;
+                if (last >= 2) {
+                    WalkStep threeBack = steps.get(last - 2);
+                    WalkStep twoBack = steps.get(last - 1);
+                    WalkStep lastStep = steps.get(last);
+
+                    if (twoBack.distance < MAX_ZAG_DISTANCE
+                            && lastStep.streetNameNoParens().equals(threeBack.streetNameNoParens())) {
+                        // total hack to remove zags.
+                        steps.remove(last);
+                        steps.remove(last - 1);
+                        step = threeBack;
+                        step.distance += twoBack.distance;
+                        distance += step.distance;
+                        if (twoBack.elevation != null) {
+                            if (step.elevation == null) {
+                                step.elevation = twoBack.elevation;
+                            } else {
+                                for (P2<Double> d : twoBack.elevation) {
+                                    step.elevation.add(new P2<Double>(d.getFirst() + step.distance, d.getSecond()));
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
                 if (step.elevation != null) {
-                    String s = encodeElevationProfile(edge, distance);
-                    if (step.elevation.length() > 0 && s != null && s.length() > 0)
-                        step.elevation += ",";
-                    step.elevation += s;
+                    List<P2<Double>> s = encodeElevationProfile(edge, distance);
+                    if (step.elevation != null && step.elevation.size() > 0) {
+                        step.elevation.addAll(s);
+                    } else {
+                        step.elevation = s;
+                    }
                 }
                 distance += edgeNarrative.getDistance();
 
@@ -799,23 +840,81 @@ public class PlanGenerator {
         return step;
     }
 
-    private String encodeElevationProfile(Edge edge, double offset) {
+    private List<P2<Double>> encodeElevationProfile(Edge edge, double offset) {
         if (!(edge instanceof EdgeWithElevation)) {
-            return "";
+            return new ArrayList<P2<Double>>();
         }
         EdgeWithElevation elevEdge = (EdgeWithElevation) edge;
         if (elevEdge.getElevationProfile() == null) {
-            return "";
+            return new ArrayList<P2<Double>>();
         }
-        StringBuilder str = new StringBuilder();
+        ArrayList<P2<Double>> out = new ArrayList<P2<Double>>();
         Coordinate[] coordArr = elevEdge.getElevationProfile().toCoordinateArray();
         for (int i = 0; i < coordArr.length; i++) {
-            str.append(Math.round(coordArr[i].x + offset));
-            str.append(",");
-            str.append(Math.round(coordArr[i].y * 10.0) / 10.0);
-            str.append(i < coordArr.length - 1 ? "," : "");
+            out.add(new P2<Double>(coordArr[i].x + offset, coordArr[i].y));
         }
-        return str.toString();
+        return out;
+    }
+
+    /** Returns the first trip of the service day. */
+    public TripPlan generateFirstTrip(RoutingRequest request) {
+        Graph graph = graphService.getGraph(request.getRouterId());
+
+        TransitIndexService transitIndex = graph.getService(TransitIndexService.class);
+        transitIndexWithBreakRequired(transitIndex);
+
+        request.setArriveBy(false);
+
+        TimeZone tz = graph.getTimeZone();
+
+        GregorianCalendar calendar = new GregorianCalendar(tz);
+        calendar.setTimeInMillis(request.dateTime * 1000);
+        calendar.set(Calendar.HOUR, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.AM_PM, 0);
+        calendar.set(Calendar.SECOND, transitIndex.getOvernightBreak());
+
+        request.dateTime = calendar.getTimeInMillis() / 1000;
+        return generate(request);
+    }
+
+    /** Return the last trip of the service day */
+    public TripPlan generateLastTrip(RoutingRequest request) {
+        Graph graph = graphService.getGraph(request.getRouterId());
+
+        TransitIndexService transitIndex = graph.getService(TransitIndexService.class);
+        transitIndexWithBreakRequired(transitIndex);
+
+        request.setArriveBy(true);
+
+        TimeZone tz = graph.getTimeZone();
+
+        GregorianCalendar calendar = new GregorianCalendar(tz);
+        calendar.setTimeInMillis(request.dateTime * 1000);
+        calendar.set(Calendar.HOUR, 0);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.AM_PM, 0);
+        calendar.set(Calendar.SECOND, transitIndex.getOvernightBreak());
+        calendar.add(Calendar.DAY_OF_YEAR, 1);
+
+        request.dateTime = calendar.getTimeInMillis() / 1000;
+
+        return generate(request);
+    }
+
+    private void transitIndexWithBreakRequired(TransitIndexService transitIndex) {
+        transitIndexRequired(transitIndex);
+        if (transitIndex.getOvernightBreak() == -1) {
+            throw new RuntimeException("TransitIndexBuilder could not find an overnight break "
+                    + "in the transit schedule; first/last trips are undefined");
+        }
+    }
+
+    private void transitIndexRequired(TransitIndexService transitIndex) {
+        if (transitIndex == null) {
+            throw new RuntimeException(
+                    "TransitIndexBuilder is required for first/last/next/previous trip");
+        }
     }
 
 }

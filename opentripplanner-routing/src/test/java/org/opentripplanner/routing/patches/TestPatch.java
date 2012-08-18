@@ -36,12 +36,11 @@ import org.opentripplanner.gtfs.GtfsLibrary;
 import org.opentripplanner.routing.algorithm.GenericAStar;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.core.RoutingRequest;
-import org.opentripplanner.routing.edgetype.PatternBoard;
+import org.opentripplanner.routing.edgetype.TransitBoardAlight;
 import org.opentripplanner.routing.edgetype.PatternHop;
 import org.opentripplanner.routing.edgetype.PreAlightEdge;
 import org.opentripplanner.routing.edgetype.PreBoardEdge;
 import org.opentripplanner.routing.edgetype.factory.GTFSPatternHopFactory;
-import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.patch.Alert;
@@ -102,8 +101,9 @@ public class TestPatch extends TestCase {
                 route.setId(routeId);
                 route.setShortName(routeId.getId());
 
-                PatternBoard somePatternBoard = (PatternBoard) graph.getVertex("agency_A_depart")
+                TransitBoardAlight somePatternBoard = (TransitBoardAlight) graph.getVertex("agency_A_depart")
                         .getOutgoing().iterator().next();
+                assertTrue(somePatternBoard.isBoarding());
                 PatternHop somePatternHop = (PatternHop) somePatternBoard.getToVertex()
                         .getOutgoing().iterator().next();
 
@@ -174,6 +174,16 @@ public class TestPatch extends TestCase {
             @Override
             public Coordinate getCenter() {
                 return null;
+            }
+
+            @Override
+            public int getOvernightBreak() {
+                return 0;
+            }
+
+            @Override
+            public Collection<Stop> getStopsForRoute(AgencyAndId route) {
+                return Collections.emptyList();
             }
         };
         graph.putService(TransitIndexService.class, index);

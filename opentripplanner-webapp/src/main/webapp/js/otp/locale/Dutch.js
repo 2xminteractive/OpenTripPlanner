@@ -175,6 +175,12 @@ otp.locale.Dutch = {
         trip_details : "Reisdetails",
         fare         : "Ritprijs",
         fare_symbol  : "\u20ac",
+
+        // TODO  -- used in the Trip Details summary to describe different fares 
+        regular_fare : "",
+        student_fare : "",
+        senior_fare  : "",
+
         travel       : "Reis",
         valid        : "Geldig",
         trip_length  : "Tijd",
@@ -214,6 +220,12 @@ otp.locale.Dutch = {
 
     time:
     {
+        // TODO
+        hour_abbrev    : "hour",
+        hours_abbrev   : "hours",
+        hour           : "hour",
+        hours          : "hours",
+
         minute         : "minuut",
         minutes        : "minuten",
         minute_abbrev  : "min",

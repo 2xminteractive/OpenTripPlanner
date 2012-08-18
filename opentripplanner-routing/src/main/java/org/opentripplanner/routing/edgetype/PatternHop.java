@@ -14,7 +14,7 @@
 package org.opentripplanner.routing.edgetype;
 
 import org.onebusaway.gtfs.model.Stop;
-import org.opentripplanner.common.geometry.DistanceLibrary;
+import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.gtfs.GtfsLibrary;
 import org.opentripplanner.routing.core.EdgeNarrative;
@@ -22,6 +22,7 @@ import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.StateEditor;
 import org.opentripplanner.routing.core.TraverseMode;
 import org.opentripplanner.routing.core.RoutingRequest;
+import org.opentripplanner.routing.trippattern.TripTimes;
 import org.opentripplanner.routing.vertextype.PatternStopVertex;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -37,32 +38,32 @@ public class PatternHop extends PatternEdge implements OnBoardForwardEdge, OnBoa
 
     private Stop start, end;
 
-    private int stopIndex;
+    public int stopIndex;
 
     private Geometry geometry = null;
 
-    public PatternHop(PatternStopVertex from, PatternStopVertex to, Stop start, Stop end, int stopIndex,
-            TableTripPattern tripPattern) {
-        super(from, to, tripPattern);
+    public PatternHop(PatternStopVertex from, PatternStopVertex to, Stop start, Stop end, int stopIndex) {
+        super(from, to);
         this.start = start;
         this.end = end;
         this.stopIndex = stopIndex;
     }
 
     public double getDistance() {
-        return DistanceLibrary.distance(start.getLat(), start.getLon(), end.getLat(), end.getLon());
+        return SphericalDistanceLibrary.getInstance().distance(start.getLat(), start.getLon(), end.getLat(),
+                end.getLon());
     }
 
     public TraverseMode getMode() {
-        return GtfsLibrary.getTraverseMode(pattern.getExemplar().getRoute());
+        return GtfsLibrary.getTraverseMode(getPattern().getExemplar().getRoute());
     }
 
     public String getName() {
-        return GtfsLibrary.getRouteName(pattern.getExemplar().getRoute());
+        return GtfsLibrary.getRouteName(getPattern().getExemplar().getRoute());
     }
     
     public State optimisticTraverse(State state0) {
-    	int runningTime = pattern.getBestRunningTime(stopIndex);
+    	int runningTime = getPattern().getBestRunningTime(stopIndex);
     	StateEditor s1 = state0.edit(this);
     	s1.incrementTimeInSeconds(runningTime);
     	s1.incrementWeight(runningTime);
@@ -71,7 +72,7 @@ public class PatternHop extends PatternEdge implements OnBoardForwardEdge, OnBoa
 
     @Override
     public double timeLowerBound(RoutingRequest options) {
-        return pattern.getBestRunningTime(stopIndex);
+        return getPattern().getBestRunningTime(stopIndex);
     }
     
     @Override
@@ -80,16 +81,16 @@ public class PatternHop extends PatternEdge implements OnBoardForwardEdge, OnBoa
     }
     
     public State traverse(State s0) {
-        int trip = s0.getTrip();
-        int runningTime = pattern.getRunningTime(stopIndex, trip);
-        EdgeNarrative en = new TransitNarrative(pattern.getTrip(trip), pattern.getHeadsign(stopIndex, trip), this);
+        TripTimes tripTimes = s0.getTripTimes();
+        int runningTime = tripTimes.getRunningTime(stopIndex);
+        EdgeNarrative en = new TransitNarrative(tripTimes.trip, getPattern().getHeadsign(stopIndex, tripTimes.index), this);
         StateEditor s1 = s0.edit(this, en);
         s1.incrementTimeInSeconds(runningTime);
         if (s0.getOptions().isArriveBy())
             s1.setZone(getStartStop().getZoneId());
         else
             s1.setZone(getEndStop().getZoneId());
-        s1.setRoute(pattern.getExemplar().getRoute().getId());
+        //s1.setRoute(pattern.getExemplar().getRoute().getId());
         s1.incrementWeight(runningTime);
         return s1.makeState();
     }

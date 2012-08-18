@@ -30,6 +30,7 @@ import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.patch.Alert;
 import org.opentripplanner.routing.patch.Patch;
+import org.opentripplanner.routing.util.ElevationProfileSegment;
 import org.opentripplanner.routing.vertextype.StreetVertex;
 import org.opentripplanner.routing.vertextype.TurnVertex;
 
@@ -135,19 +136,21 @@ public class TurnEdge extends StreetEdge {
         }
     }
 
-    private boolean turnRestricted(State s0, RoutingRequest options) {
+    protected boolean turnRestricted(TraverseMode traverseMode) {
         if (restrictedModes == null)
             return false;
         else {
-            return restrictedModes.contains(s0.getNonTransitMode(options));
+            return restrictedModes.contains(traverseMode);
         }
     }
 
     private State doTraverse(State s0, RoutingRequest options) {
-        if (turnRestricted(s0, options) && !options.getModes().contains(TraverseMode.WALK)) {
+        TraverseMode traverseMode = s0.getNonTransitMode(options);
+
+        if (turnRestricted(traverseMode) && !options.getModes().contains(TraverseMode.WALK)) {
             return null;
         }
-        TraverseMode traverseMode = s0.getNonTransitMode(options);
+
         if (!((TurnVertex) fromv).canTraverse(options, traverseMode)) {
             if (traverseMode == TraverseMode.BICYCLE) {
                 // try walking bicycle, since you can't ride it here
@@ -248,7 +251,11 @@ public class TurnEdge extends StreetEdge {
     public boolean setElevationProfile(PackedCoordinateSequence elev, boolean computed) {
         return ((TurnVertex) fromv).setElevationProfile(elev, computed);
     }
-    
+
+    public boolean isElevationFlattened() {
+        return ((TurnVertex) fromv).isElevationFlattened();
+    }
+
     @Override
     public void addPatch(Patch patch) {
         if (patches == null) {
@@ -324,4 +331,8 @@ public class TurnEdge extends StreetEdge {
         return ((TurnVertex) fromv).getStreetClass();
     }
 
+    @Override
+    public ElevationProfileSegment getElevationProfileSegment() {
+        return ((TurnVertex) fromv).getElevationProfileSegment();
+    }
 }

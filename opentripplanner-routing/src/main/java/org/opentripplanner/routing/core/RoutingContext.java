@@ -9,18 +9,18 @@ import org.onebusaway.gtfs.model.AgencyAndId;
 import org.onebusaway.gtfs.model.calendar.ServiceDate;
 import org.onebusaway.gtfs.services.calendar.CalendarService;
 import org.opentripplanner.common.model.NamedPlace;
-import org.opentripplanner.routing.algorithm.strategies.GenericAStarFactory;
 import org.opentripplanner.routing.algorithm.strategies.RemainingWeightHeuristic;
 import org.opentripplanner.routing.algorithm.strategies.TrivialRemainingWeightHeuristic;
+import org.opentripplanner.routing.edgetype.TimetableSnapshot;
 import org.opentripplanner.routing.error.TransitTimesException;
 import org.opentripplanner.routing.error.VertexNotFoundException;
 import org.opentripplanner.routing.graph.Graph;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.impl.DefaultRemainingWeightHeuristicFactoryImpl;
 import org.opentripplanner.routing.location.StreetLocation;
-import org.opentripplanner.routing.pathparser.BasicPathParser;
 import org.opentripplanner.routing.pathparser.PathParser;
 import org.opentripplanner.routing.services.RemainingWeightHeuristicFactory;
+import org.opentripplanner.routing.services.TransitIndexService;
 import org.opentripplanner.routing.vertextype.TransitStop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,10 +52,10 @@ public class RoutingContext implements Cloneable {
     //public final Calendar calendar;
     public final CalendarService calendarService;
     public final Map<AgencyAndId, Set<ServiceDate>> serviceDatesByServiceId = new HashMap<AgencyAndId, Set<ServiceDate>>();
-    public final GenericAStarFactory aStarSearchFactory = null;
-    public final RemainingWeightHeuristic remainingWeightHeuristic;
+    public RemainingWeightHeuristic remainingWeightHeuristic;
     public final TransferTable transferTable;
-            
+    public final TimetableSnapshot timetableSnapshot; 
+    
     /**
      * Cache lists of which transit services run on which midnight-to-midnight periods. This ties a
      * TraverseOptions to a particular start time for the duration of a search so the same options
@@ -75,17 +75,16 @@ public class RoutingContext implements Cloneable {
     public long searchAbortTime = 0;
     
     public PathParser[] pathParsers = new PathParser[] { };
+
+    public Vertex startingStop;
     
     /* CONSTRUCTORS */
     
-    public RoutingContext(RoutingRequest traverseOptions, Graph graph) {
-        this(traverseOptions, graph, null, null);
-    }
-
-    public RoutingContext(RoutingRequest traverseOptions, Graph graph, Vertex from, Vertex to) {
+    public RoutingContext(RoutingRequest traverseOptions, Graph graph, 
+                          Vertex from, Vertex to, boolean findPlaces) {
         this.opt = traverseOptions;
         this.graph = graph;
-        if (from == null && to == null) {
+        if (findPlaces) {
             // normal mode, search for vertices based on fromPlace and toPlace
             fromVertex = graph.streetIndex.getVertexForPlace(opt.getFromPlace(), opt);
             toVertex = graph.streetIndex.getVertexForPlace(opt.getToPlace(), opt, fromVertex);
@@ -100,10 +99,21 @@ public class RoutingContext implements Cloneable {
             fromVertex = from;
             toVertex = to;
         }
+        if (opt.getStartingTransitStopId() != null) {
+            TransitIndexService tis = graph.getService(TransitIndexService.class);
+            if (tis == null) {
+                throw new RuntimeException("Next/Previous/First/Last trip " + 
+                        "functionality depends on the transit index. Rebuild " +
+                        "the graph with TransitIndexBuilder");
+            }
+            AgencyAndId stopId = opt.getStartingTransitStopId();
+            startingStop = tis.getPreBoardEdge(stopId).getToVertex();
+        }
         origin = opt.arriveBy ? toVertex : fromVertex;
         target = opt.arriveBy ? fromVertex : toVertex;
         calendarService = graph.getCalendarService();
         transferTable = graph.getTransferTable();
+        timetableSnapshot = null;
         setServiceDays();
         if (opt.batch)
             remainingWeightHeuristic = new TrivialRemainingWeightHeuristic();
@@ -116,13 +126,17 @@ public class RoutingContext implements Cloneable {
     
     public void check() {
         ArrayList<String> notFound = new ArrayList<String>();
-        if (fromVertex == null) {
-            notFound.add("from");
-        }
-        //if ( ! opt.batch)
-        if (toVertex == null) {
-            notFound.add("to");
-        }
+
+        // check origin present when not doing an arrive-by batch search
+        if ( ! (opt.batch && opt.arriveBy)) 
+        	if (fromVertex == null) 
+        		notFound.add("from");
+        
+        // check destination present when not doing a depart-after batch search
+        if ( !opt.batch || opt.arriveBy) // 
+        	if (toVertex == null) 
+        		notFound.add("to");
+
         for (int i = 0; i < intermediateVertices.size(); i++) {
             if (intermediateVertices.get(i) == null) {
                 notFound.add("intermediate." + i);
@@ -155,9 +169,9 @@ public class RoutingContext implements Cloneable {
         // since DST changes more than one hour after midnight in US/EU.
         // But is this true everywhere?
         for (String agency : graph.getAgencyIds()) {
-            addIfNotExists(this.serviceDays, new ServiceDay(time - SEC_IN_DAY, calendarService, agency));
-            addIfNotExists(this.serviceDays, new ServiceDay(time, calendarService, agency));
-            addIfNotExists(this.serviceDays, new ServiceDay(time + SEC_IN_DAY, calendarService, agency));
+            addIfNotExists(this.serviceDays, new ServiceDay(graph, time - SEC_IN_DAY, calendarService, agency));
+            addIfNotExists(this.serviceDays, new ServiceDay(graph, time, calendarService, agency));
+            addIfNotExists(this.serviceDays, new ServiceDay(graph, time + SEC_IN_DAY, calendarService, agency));
         }
     }
 
@@ -169,7 +183,7 @@ public class RoutingContext implements Cloneable {
 
     /** check if the start and end locations are accessible */
     public boolean isAccessible() {
-        if (opt.getWheelchairAccessible()) {
+        if (opt.isWheelchairAccessible()) {
             return isWheelchairAccessible(fromVertex) &&
                    isWheelchairAccessible(toVertex);
         }
@@ -186,27 +200,6 @@ public class RoutingContext implements Cloneable {
             return sl.isWheelchairAccessible();
         }
         return true;
-    }
-
-    public boolean serviceOn(AgencyAndId serviceId, ServiceDate serviceDate) {
-        Set<ServiceDate> dates = serviceDatesByServiceId.get(serviceId);
-        if (dates == null) {
-            dates = calendarService.getServiceDatesForServiceId(serviceId);
-            serviceDatesByServiceId.put(serviceId, dates);
-        }
-        return dates.contains(serviceDate);
-    }
-    
-    /** 
-     * When a routing context is garbage collected, there should be no more references
-     * to the temporary vertices it created. We need to detach its edges from the permanent graph.
-     */
-    @Override public void finalize() {
-        int nRemoved = this.destroy();
-        if (nRemoved > 0) {
-            LOG.warn("Temporary edges were removed during garbage collection. " +
-                     "This is probably because a routing context was not properly destroyed.");
-        }
     }
     
     /** 

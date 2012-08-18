@@ -32,6 +32,8 @@ import org.junit.Test;
 import org.onebusaway.gtfs.impl.calendar.CalendarServiceImpl;
 import org.onebusaway.gtfs.model.calendar.CalendarServiceData;
 import org.opentripplanner.common.DisjointSet;
+import org.opentripplanner.common.geometry.DistanceLibrary;
+import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.graph_builder.impl.GtfsGraphBuilderImpl;
 import org.opentripplanner.graph_builder.model.GtfsBundle;
@@ -84,6 +86,8 @@ class ForbiddenEdge extends FreeEdge {
 }
 
 public class TestContractionHeirarchies extends TestCase {
+
+    protected DistanceLibrary distanceLibrary = SphericalDistanceLibrary.getInstance();
 
     @Test
     public void testBasic() {
@@ -187,6 +191,7 @@ public class TestContractionHeirarchies extends TestCase {
         RoutingRequest options = new RoutingRequest();
         options.optimize = OptimizeType.QUICK;
         options.walkReluctance = 1;
+        options.setMaxWalkDistance(Double.MAX_VALUE);
         options.setWalkSpeed(1);
 
         // test hop limit
@@ -250,6 +255,7 @@ public class TestContractionHeirarchies extends TestCase {
 
         options = new RoutingRequest();
         options.optimize = OptimizeType.QUICK;
+        options.setMaxWalkDistance(Double.MAX_VALUE);
         options.setWalkSpeed(1);
         // Turn off remaining weight heuristic: Unless latitude is very low, heuristic will sometimes 
         // lead algorithm to attempt to reduce distance incorrectly via FreeEdges 
@@ -316,7 +322,8 @@ public class TestContractionHeirarchies extends TestCase {
             }
             Collections.sort(nearby, new Comparator<Vertex>() {
                 public int compare(Vertex a, Vertex b) {
-                    return (int) (a.distance(c) - b.distance(c));
+                    return (int) (distanceLibrary.distance(a.getCoordinate(), c) - 
+                            distanceLibrary.distance(b.getCoordinate(), c));
                 }
             });
             for (Vertex n : nearby.subList(1, 6)) {
@@ -343,8 +350,8 @@ public class TestContractionHeirarchies extends TestCase {
                 lastKey = components.union(v, last);
                 last = v;
                 Coordinate c = v.getCoordinate();
-                new SimpleEdge(v, last, last.distance(c), 0);
-                new SimpleEdge(last, v, last.distance(c), 0);
+                new SimpleEdge(v, last, distanceLibrary.distance(last.getCoordinate(), c), 0);
+                new SimpleEdge(last, v, distanceLibrary.distance(last.getCoordinate(), c), 0);
             }
         }
 
@@ -353,6 +360,7 @@ public class TestContractionHeirarchies extends TestCase {
         RoutingRequest options = new RoutingRequest();
         options.optimize = OptimizeType.QUICK;
         options.walkReluctance = 1;
+        options.setMaxWalkDistance(Double.MAX_VALUE);
         options.setWalkSpeed(1);
         GraphPath path = hierarchy.getShortestPath(vertices.get(0), vertices.get(1), 0, options);
         assertNotNull(path);
