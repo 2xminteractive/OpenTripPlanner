@@ -30,3 +30,4 @@ opentripplanner-webapp/src/main/webapp/js/otp-min.js
 .externalToolBuilders
 nohup.out
 Graph.obj
+expiration_date.txt

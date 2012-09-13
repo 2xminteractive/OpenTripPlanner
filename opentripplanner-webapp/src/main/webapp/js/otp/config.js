@@ -1,4 +1,5 @@
-/**
+/*
+
  * make sure that otp.config.locale is set to your default language
  *
  * NOTE:
@@ -51,7 +52,7 @@ otp.ol_rez = [
 
 // step 2: create an object of default otp.config default values (see step3 where we apply this to any existing config)
 otp.config_defaults = {
-    routerId      : null,
+    routerId      : 'ottawa',
     locale        : otp.config.locale,
     metricsSystem : otp.config.locale.config.metricsSystem,  // Metrics system (e.g., 'english' == feet, miles, other value or null is metric system)
 
@@ -71,16 +72,16 @@ otp.config_defaults = {
             showStopCodes         : true,   // show stop codes as part of the itinerary
             showAgencyInfo        : true,   // show the 'service run by Yolobus' on each itinerary leg
             showFareInfo          : true,   // show the fare information in the itinerary
-            showReverseButton     : false,   // turn on/off itinerary reverse button
-            showEditButton        : false,   // turn on/off itinerary edit button
-            showPrintButton       : false,   // turn on/off itinerary print button
-            showLinksButton       : false,   // turn on/off itinerary links button
+            showReverseButton     : true,   // turn on/off itinerary reverse button
+            showEditButton        : true,   // turn on/off itinerary edit button
+            showPrintButton       : true,   // turn on/off itinerary print button
+            showLinksButton       : true,   // turn on/off itinerary links button
             showLayerSwitcher     : true,   // turn on/off OpenLayers layer switcher when more than 1 basemap exists (see map.baseLayer below)
             setMaxExtentToDefault : true,   // will replace the OpenLayers.Map.zoomToMaxExtent() method with a pointer to otp.core.Map.zoomToDefaultExtent()
             useOptionDependencies : true,   // trip form changes based on mode and optimize flags (e.g., bike mode has no wheelchair or walk distance forms etc...) 
             useRouteLongName      : false,  // format route name with both short-name and long-name...see / override Itinerary.makeRouteName() for different formatting options
             appendGeocodeName     : true,   // true = send string:lat,lon parameter format to OTP, else just lat,lon goes to OTP
-            showForm              : false,  // turn on/off the 'Plan a Trip, form that allows users to create routes. You might want to hide it if you want to only display predefined routes.
+            showForm              : true,   // turn on/off the 'Plan a Trip, form that allows users to create routes. You might want to hide it if you want to only display predefined routes.
             OPTIONS_NOTE: "THIS IS A STRUCTURE USED TO CUSTOMIZE THE TRIP FORMS AND OTHER BEHAVIORS"
         },
 
